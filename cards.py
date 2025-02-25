@@ -2,18 +2,17 @@ from random import shuffle
 
 
 class Card:
-    
 
     def __init__(self, value: int, suit: str) -> None:
         self.value = value
         self.suit = suit
 
         face_card_values = {
-                    1:"A",
-                    11:"J",
-                    12:"Q",
-                    13:"K",
-                }
+            1: "A",
+            11: "J",
+            12: "Q",
+            13: "K",
+        }
 
         if value > 10 or value == 1:
             self.symbol = face_card_values[value]
@@ -21,7 +20,10 @@ class Card:
             self.symbol = value
 
     def __str__(self) -> str:
-        return f"({self.symbol}, {self.suit})"
+        return str(self.symbol)
+
+    def __int__(self) -> int:
+        return self.value
 
     def __repr__(self) -> str:
         return f"({self.symbol}, {self.suit})"
@@ -47,8 +49,5 @@ class Deck:
 
 
 if __name__ == "__main__":
-    new_deck = Deck()
-    new_deck.add_64_cards()
-    new_deck.shuffle_deck()
-    print(new_deck.cards)
-    print(new_deck.draw_one_card())
+    card = [Card(12, ""), Card(1, "")]
+    print("A" in map(str, card))

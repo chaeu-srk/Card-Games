@@ -39,23 +39,23 @@ class Person:
         self.chips += self.bet_amount
 
     def blackjack_checker(self):
-        if len(self.cards) > 2:
-            return False
-        elif self.cards[0].value == 1 and self.cards[1].value >= 10:
-            return True
-        elif self.cards[0].value >= 10 and self.cards[1].value == 1:
+        if len(self.cards) > 2 and self.calculate_card_values() == 21:
             return True
 
-    def calculate_card_values(self):
+    def calculate_card_values(self) -> int:
         total_value = 0
+
         for card in self.cards:
-            # so card values are max 10
+            # sets face card values to 10
             if card.value > 10:
                 value = 10
             else:
                 value = card.value
 
             total_value += value
+
+        if "A" in map(str, self.cards) and total_value <= 11:
+            total_value += 10
 
         return total_value
 
@@ -83,15 +83,13 @@ class Game:
             else:
                 print("Not enough chips!")
 
-
     def display_cards(self, player: Person):
         cards = player.get_player_cards()
         values = player.calculate_card_values()
-        if player.blackjack_checker() == True:
-            values = 21
+        # if player.blackjack_checker() == True:
+        #     values = 21
 
         print(f"{player.name} cards:{cards}, value: {values}")
-
 
     def check_player_blackjack(self):
         if self.player.blackjack_checker() == True:
@@ -99,29 +97,52 @@ class Game:
         else:
             self.lose_round()
 
-    def win_round(self):
+    def player_action(self):
         pass
+
+    def player_hit(self):
+        self.player.draw_card()
+        self.display_cards(self.player)
+        if self.player.calculate_card_values() > 21:
+            self.lose_round()
+        elif self.player.calculate_card_values() == 21:
+            self.win_round()
+
+    def player_double(self):
+        pass
+
+    def player_split(self):
+        pass
+
+    def dealer_action(self):
+        while True:
+            self.dealer.draw_card()
+            self.display_cards(self.dealer)
+            if self.dealer.calculate_card_values() > 21:
+                self.win_round()
+                break
+            # Dealer blackjack
+            elif self.dealer.calculate_card_values() == 21:
+                self.lose_round()
+                break
+            elif self.dealer.calculate_card_values() > 17:
+                print("compare with player cards")
+                break
+
+    def win_round(self):
+        print("round won")
 
     def lose_round(self):
-        pass
+        print("round lost")
 
 
-# gameplay loop
-# player bets
-# initial_deal
-# if blackjack then payout
-# player action
-# hit: if bust lose round
-# stand: dealer action
-# if dealer bust payout
-# if dealer cards > 17 and <21 then compare with player
-# higher value wins
-# if == push (player keeps bet amount)
 def gameplay():
     game = Game()
+    game.player_bets()
     game.initial_deal()
     game.display_cards(game.player)
-    game.display_cards(game.dealer)
+    game.player_hit()
+    game.dealer_action()
 
 
 if __name__ == "__main__":
