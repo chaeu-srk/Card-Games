@@ -11,16 +11,19 @@ class BlackJackDeck(Deck):
         for _ in range(6):
             self.add_64_cards()
 
+        self.shuffle_deck()
 
-class Player:
+
+class Person:
     """
     Default behaviour for players
     """
 
-    def __init__(self, deck: BlackJackDeck, cards: list[Card] = []) -> None:
+    def __init__(self, deck: BlackJackDeck, cards: list[Card], name: str) -> None:
         self.cards = cards
         self.deck = deck
         self.chips = 500
+        self.name = name
 
     def draw_card(self):
         self.cards.append(self.deck.draw_one_card())
@@ -46,9 +49,9 @@ class Player:
     def calculate_card_values(self):
         total_value = 0
         for card in self.cards:
+            # so card values are max 10
             if card.value > 10:
                 value = 10
-
             else:
                 value = card.value
 
@@ -56,12 +59,15 @@ class Player:
 
         return total_value
 
+    def get_player_cards(self):
+        return self.cards
+
 
 class Game:
-    def start_game(self):
+    def __init__(self):
         self.deck = BlackJackDeck()
-        self.player = Player(self.deck)
-        self.dealer = Player(self.deck)
+        self.player = Person(self.deck, [], "Player")
+        self.dealer = Person(self.deck, [], "Dealer")
 
     def initial_deal(self):
         self.player.draw_card()
@@ -77,8 +83,27 @@ class Game:
             else:
                 print("Not enough chips!")
 
-    def display_cards(self):
-        print(f"player cards:{self.player.cards}")
+
+    def display_cards(self, player: Person):
+        cards = player.get_player_cards()
+        values = player.calculate_card_values()
+        if player.blackjack_checker() == True:
+            values = 21
+
+        print(f"{player.name} cards:{cards}, value: {values}")
+
+
+    def check_player_blackjack(self):
+        if self.player.blackjack_checker() == True:
+            self.win_round()
+        else:
+            self.lose_round()
+
+    def win_round(self):
+        pass
+
+    def lose_round(self):
+        pass
 
 
 # gameplay loop
@@ -94,8 +119,9 @@ class Game:
 # if == push (player keeps bet amount)
 def gameplay():
     game = Game()
-    game.start_game()
-    game.player_bets()
+    game.initial_deal()
+    game.display_cards(game.player)
+    game.display_cards(game.dealer)
 
 
 if __name__ == "__main__":
