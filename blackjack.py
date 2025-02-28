@@ -97,19 +97,6 @@ class Game:
         """
         return self.player.bet(bet_amount)
 
-    # def initial_display(self):
-    #     print("\nDEALER CARDS:")
-    #     print("-------------")
-    #     print(repr(self.dealer.cards[0]))
-    #     print("(********)")
-    #     print("value: ???")
-
-    #     print("\nPLAYER CARDS:")
-    #     print("-------------")
-    #     for card in self.player.cards:
-    #         print(repr(card))
-    #     print(f"value: {self.player.calculate_card_values()}\n")
-
     def check_player_blackjack(self):
         if self.player.blackjack_checker() is True:
             self.win_round()
@@ -120,16 +107,19 @@ class Game:
         outcomes ->
             player gets 21 and wins
             player busts and loses
+        returns ->
+            Card values
         """
         self.player.draw_card()
+        return self.player.calculate_card_values()
 
         # Player Busts
-        if self.player.calculate_card_values() > 21:
-            self.lose_round()
+        # if self.player.calculate_card_values() > 21:
+        #     self.lose_round()
 
-        # Player gets 21
-        elif self.player.calculate_card_values() == 21:
-            self.win_round()
+        # # Player gets 21
+        # elif self.player.calculate_card_values() == 21:
+        #     self.win_round()
 
     def player_double(self):
         self.player.bet_amount *= 2
@@ -162,6 +152,7 @@ class Game:
 class View:
     def __init__(self):
         self.game = Game()
+        self.p_action_loop = True
 
     def start_game(self):
         print("GAME START >>> \n")
@@ -181,47 +172,76 @@ class View:
         print("\nROUND START >>>\n")
         self.game.initial_deal()
         sleep(1)
-        
+
         delay = 0.7
         self.dealer_cards(delay)
         self.player_cards(delay)
 
-    def dealer_cards(self, delay: int):
-        print("DEALER CARDS")
+    def dealer_cards(self, delay: int, hide_cards: bool = True):
+        cards = self.game.player.cards
+
+        print("\nDEALER CARDS")
         print("------------")
         sleep(delay)
-        print(f"{repr(self.game.dealer.cards[0])}")
+        for i, card in enumerate(cards):
+            if i == 1 and hide_cards is True:
+                print("(********)")
+                sleep(delay)
+            else:
+                print(f"{repr(card)}")
+                sleep(delay)
+        if hide_cards is True:
+            print("value: ???")
+        else:
+            print(f"value: {self.game.player.calculate_card_values()}\n")
         sleep(delay)
-        print("(********)")
-        sleep(delay)
-        print("value: ???")
-        sleep(delay)
-        print("\n")
 
     def player_cards(self, delay: int):
-        print("PLAYER CARDS")
+        cards = self.game.player.cards
+
+        print("\nPLAYER CARDS")
         print("------------")
         sleep(delay)
-        print(f"{repr(self.game.player.cards[0])}")
+        for card in cards:
+            print(f"{repr(card)}")
+            sleep(delay)
+        print(f"value: {self.game.player.calculate_card_values()}\n")
         sleep(delay)
-        print(f"{repr(self.game.player.cards[1])}")
-        sleep(delay)
-        print(f"value: {self.game.player.calculate_card_values()}")
-        print("\n")
 
     def player_action(self):
         msg = "action (hit, stand, double, split): "
-        while True:
+        self.p_action_loop = True
+        while self.p_action_loop:
             selection = input(msg)
             if selection == "hit":
-                pass
+                self.hit()
             elif selection == "stand":
                 pass
             elif selection == "double":
                 pass
             elif selection == "split":
                 pass
-            print("Not a action")
+            else:
+                print("Not a action")
+
+    def hit(self):
+        card_value = self.game.player_hit()
+        self.player_cards(0.1)
+        if card_value > 21:
+            self.lose_round()
+        elif card_value == 21:
+            self.win_round()
+            
+    def dealer_action(self):
+        pass
+
+    def win_round(self):
+        print("Round Won")
+        self.p_action_loop = False
+
+    def lose_round(self):
+        print("Round Lost")
+        self.p_action_loop = False
 
 
 def mainloop():
@@ -230,6 +250,7 @@ def mainloop():
     view.player_chips()
     view.ask_player_bet()
     view.round_start()
+    view.player_action()
 
 
 if __name__ == "__main__":
