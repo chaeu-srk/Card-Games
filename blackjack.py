@@ -53,7 +53,7 @@ class Person:
         self.chips += self.bet_amount
 
     def blackjack_checker(self) -> bool:
-        if len(self.cards) > 2 and self.calculate_card_values() == 21:
+        if len(self.cards) == 2 and self.calculate_card_values() == 21:
             return True
         return False
 
@@ -96,10 +96,6 @@ class Game:
         Returns False otherwise and does not set bet_amount
         """
         return self.player.bet(bet_amount)
-
-    def check_player_blackjack(self):
-        if self.player.blackjack_checker() is True:
-            self.win_round()
 
     def player_hit(self):
         """
@@ -193,16 +189,23 @@ class View:
                 break
             print("Not enought chips!\n")
 
+    def check_player_blackjack(self) -> bool:
+        if self.game.player.blackjack_checker() is True:
+            self.win_round()
+
     def round_start(self):
         print("\nROUND START >>>\n")
         self.game.initial_deal()
         sleep(1)
 
-        delay = 0.7
+        delay = 0.5
         self.dealer_cards(delay)
         self.player_cards(delay)
+        self.check_player_blackjack()
 
-    def dealer_cards(self, delay: int, hide_cards: bool = True):
+    def dealer_cards(
+        self, delay: int, hide_cards: bool = True, after_card_2_delay: int = 0.7
+    ):
         """
         Displayer for dealer cards
         args:
@@ -216,6 +219,8 @@ class View:
         print("------------")
         sleep(delay)
         for i, card in enumerate(cards):
+            if i > 0 and hide_cards is False:
+                delay = after_card_2_delay
             if i == 1 and hide_cards is True:
                 print("(********)")
                 sleep(delay)
@@ -242,6 +247,7 @@ class View:
 
     def player_action(self):
         msg = "action (hit, stand, double, split): "
+        # BUG p_action_loop still runs even tho player has blackjack
         self.p_action_loop = True
         while self.p_action_loop:
             selection = input(msg)
@@ -250,7 +256,13 @@ class View:
             elif selection == "stand":
                 self.dealer_action()
             elif selection == "double":
-                pass
+                self.game.player_double()
+                print(f"bet amount: {self.game.player.bet_amount}")
+                sleep(0.5)
+                self.hit()
+                if self.p_action_loop is False:
+                    break
+                self.dealer_action()
             elif selection == "split":
                 pass
             else:
@@ -271,18 +283,19 @@ class View:
         if value > 17 and less than 21 stand and compare cards
         if over 21 player wins
         """
-        self.dealer_cards(0.1, False)
         while True:
             action = self.game.dealer_action()
 
             if action == "win":
+                self.dealer_cards(0.1, False)
                 self.lose_round()
                 break
 
             if action == "hit":
-                self.dealer_cards(0.1, False)
+                continue
 
             if action == "stand":
+                self.dealer_cards(0.1, False)
                 winner = self.game.compare_cards()
                 if winner == "player":
                     self.win_round()
@@ -294,6 +307,7 @@ class View:
                 break
 
             if action == "bust":
+                self.dealer_cards(0.1, False)
                 self.win_round()
                 break
 
@@ -302,10 +316,15 @@ class View:
         self.p_action_loop = False
 
     def win_round(self):
+        # TODO handle payouts !!! Blackjack payout too
+        self.game.player.payout()
+        self.game.clear_cards()
         print("Round Won")
         self.p_action_loop = False
 
     def lose_round(self):
+        self.game.player.reset_bet()
+        self.game.clear_cards()
         print("Round Lost")
         self.p_action_loop = False
 

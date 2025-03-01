@@ -4,7 +4,6 @@ from blackjack import *
 from cards import *
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(
     "bj_combinations_true",
     [
