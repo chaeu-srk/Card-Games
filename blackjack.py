@@ -132,7 +132,32 @@ class Game:
         self.dealer.cards.clear()
 
     def dealer_action(self):
-        pass
+        """
+        Return: hit, stand or bust
+        if value <= 16 draw card
+        if value > 17 and less than 21 stand and compare cards
+        if over 21 player wins
+        """
+        value = self.dealer.calculate_card_values()
+        if value == 21:
+            return "win"
+        if 17 < value < 21:
+            return "stand"
+        if value > 21:
+            return "bust"
+        self.dealer.draw_card()
+        return "hit"
+
+    def compare_cards(self):
+        """Return winner"""
+        player_value = self.player.calculate_card_values()
+        dealer_value = self.dealer.calculate_card_values()
+        if player_value == dealer_value:
+            return "push"
+        if player_value > dealer_value:
+            return "player"
+        if dealer_value > player_value:
+            return "dealer"
 
     def win_round(self):
         """
@@ -178,7 +203,14 @@ class View:
         self.player_cards(delay)
 
     def dealer_cards(self, delay: int, hide_cards: bool = True):
-        cards = self.game.player.cards
+        """
+        Displayer for dealer cards
+        args:
+            delay: time to wait between printing each card
+            hide_cards: whether to hide the second dealer card
+        """
+        # Add more delay on last card?
+        cards = self.game.dealer.cards
 
         print("\nDEALER CARDS")
         print("------------")
@@ -193,7 +225,7 @@ class View:
         if hide_cards is True:
             print("value: ???")
         else:
-            print(f"value: {self.game.player.calculate_card_values()}\n")
+            print(f"value: {self.game.dealer.calculate_card_values()}\n")
         sleep(delay)
 
     def player_cards(self, delay: int):
@@ -216,7 +248,7 @@ class View:
             if selection == "hit":
                 self.hit()
             elif selection == "stand":
-                pass
+                self.dealer_action()
             elif selection == "double":
                 pass
             elif selection == "split":
@@ -231,9 +263,43 @@ class View:
             self.lose_round()
         elif card_value == 21:
             self.win_round()
-            
+
     def dealer_action(self):
-        pass
+        """
+        show hidden card
+        if value <= 16 draw card
+        if value > 17 and less than 21 stand and compare cards
+        if over 21 player wins
+        """
+        self.dealer_cards(0.1, False)
+        while True:
+            action = self.game.dealer_action()
+
+            if action == "win":
+                self.lose_round()
+                break
+
+            if action == "hit":
+                self.dealer_cards(0.1, False)
+
+            if action == "stand":
+                winner = self.game.compare_cards()
+                if winner == "player":
+                    self.win_round()
+                    break
+                if winner == "push":
+                    self.push_round()
+                    break
+                self.lose_round()
+                break
+
+            if action == "bust":
+                self.win_round()
+                break
+
+    def push_round(self):
+        print("Push")
+        self.p_action_loop = False
 
     def win_round(self):
         print("Round Won")
