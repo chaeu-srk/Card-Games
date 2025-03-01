@@ -118,6 +118,7 @@ class Game:
         #     self.win_round()
 
     def player_double(self):
+        self.player.chips -= self.player.bet_amount
         self.player.bet_amount *= 2
 
     def player_split(self):
@@ -319,23 +320,24 @@ class View:
         # TODO handle payouts !!! Blackjack payout too
         self.game.player.payout()
         self.game.clear_cards()
-        print("Round Won")
+        print("Round Won\n")
         self.p_action_loop = False
 
     def lose_round(self):
         self.game.player.reset_bet()
         self.game.clear_cards()
-        print("Round Lost")
+        print("Round Lost\n")
         self.p_action_loop = False
 
 
 def mainloop():
     view = View()
     view.start_game()
-    view.player_chips()
-    view.ask_player_bet()
-    view.round_start()
-    view.player_action()
+    while True:
+        view.player_chips()
+        view.ask_player_bet()
+        view.round_start()
+        view.player_action()
 
 
 if __name__ == "__main__":
