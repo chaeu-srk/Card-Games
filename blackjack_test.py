@@ -1,7 +1,7 @@
 import pytest
 
-from blackjack import *
-from cards import *
+from blackjack import BlackJackDeck, Person
+from cards import Card
 
 
 @pytest.mark.parametrize(

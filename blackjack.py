@@ -1,5 +1,5 @@
-from time import sleep
 from cards import Card, Deck
+from time import sleep
 
 
 class BlackJackDeck(Deck):
@@ -90,12 +90,18 @@ class Game:
         self.player.draw_card()
         self.dealer.draw_card()
 
-    def player_bets(self, bet_amount: str) -> bool:
+    def player_bets(self, bet_amount: int) -> bool:
         """
         Returns True if bet is valid and sets bet_amount var in player
         Returns False otherwise and does not set bet_amount
         """
         return self.player.bet(bet_amount)
+
+    def player_action(self, action: str):
+        if action == "hit":
+            self.player_hit()
+        elif action == "stand":
+            self.dealer_action()
 
     def player_hit(self):
         """
@@ -108,14 +114,6 @@ class Game:
         """
         self.player.draw_card()
         return self.player.calculate_card_values()
-
-        # Player Busts
-        # if self.player.calculate_card_values() > 21:
-        #     self.lose_round()
-
-        # # Player gets 21
-        # elif self.player.calculate_card_values() == 21:
-        #     self.win_round()
 
     def player_double(self):
         self.player.chips -= self.player.bet_amount
@@ -162,6 +160,7 @@ class Game:
         """
         self.player.payout()
         self.clear_cards()
+        return True
 
     def lose_round(self):
         """
@@ -169,12 +168,16 @@ class Game:
         """
         self.player.reset_bet()
         self.clear_cards()
+        return True
 
 
 class View:
     def __init__(self):
         self.game = Game()
         self.p_action_loop = True
+
+    def set_game(self, game: Game):
+        self.game = game
 
     def start_game(self):
         print("GAME START >>> \n")
@@ -190,7 +193,7 @@ class View:
                 break
             print("Not enought chips!\n")
 
-    def check_player_blackjack(self) -> bool:
+    def check_player_blackjack(self):
         if self.game.player.blackjack_checker() is True:
             self.win_round()
 
@@ -205,7 +208,7 @@ class View:
         self.check_player_blackjack()
 
     def dealer_cards(
-        self, delay: int, hide_cards: bool = True, after_card_2_delay: int = 0.7
+        self, delay: float, hide_cards: bool = True, after_card_2_delay: float = 0.7
     ):
         """
         Displayer for dealer cards
@@ -234,7 +237,7 @@ class View:
             print(f"value: {self.game.dealer.calculate_card_values()}\n")
         sleep(delay)
 
-    def player_cards(self, delay: int):
+    def player_cards(self, delay: float):
         cards = self.game.player.cards
 
         print("\nPLAYER CARDS")
@@ -249,25 +252,28 @@ class View:
     def player_action(self):
         msg = "action (hit, stand, double, split): "
         # BUG p_action_loop still runs even tho player has blackjack
-        self.p_action_loop = True
-        while self.p_action_loop:
-            selection = input(msg)
-            if selection == "hit":
-                self.hit()
-            elif selection == "stand":
-                self.dealer_action()
-            elif selection == "double":
-                self.game.player_double()
-                print(f"bet amount: {self.game.player.bet_amount}")
-                sleep(0.5)
-                self.hit()
-                if self.p_action_loop is False:
-                    break
-                self.dealer_action()
-            elif selection == "split":
-                pass
-            else:
-                print("Not a action")
+        selection = input(msg)
+        if selection == "hit":
+            self.hit()
+        # self.p_action_loop = True
+        # while self.p_action_loop:
+        #     selection = input(msg)
+        #     if selection == "hit":
+        #         self.hit()
+        #     elif selection == "stand":
+        #         self.dealer_action()
+        #     elif selection == "double":
+        #         self.game.player_double()
+        #         print(f"bet amount: {self.game.player.bet_amount}")
+        #         sleep(0.5)
+        #         self.hit()
+        #         if self.p_action_loop is False:
+        #             break
+        #         self.dealer_action()
+        #     elif selection == "split":
+        #         pass
+        #     else:
+        #         print("Not a action")
 
     def hit(self):
         card_value = self.game.player_hit()
@@ -332,12 +338,7 @@ class View:
 
 def mainloop():
     view = View()
-    view.start_game()
-    while True:
-        view.player_chips()
-        view.ask_player_bet()
-        view.round_start()
-        view.player_action()
+    game = Game()
 
 
 if __name__ == "__main__":
