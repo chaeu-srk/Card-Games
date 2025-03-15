@@ -2,7 +2,7 @@ import pytest
 
 from cards import Card
 
-from blackjack_v2 import Player, Table
+from blackjack import Player, Table
 
 @pytest.mark.parametrize(
     "bj_combinations_true",
