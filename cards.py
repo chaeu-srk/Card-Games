@@ -44,7 +44,7 @@ class Deck:
     def shuffle_deck(self) -> None:
         shuffle(self.cards)
 
-    def draw_one_card(self) -> Card:
+    def draw_card(self) -> Card:
         return self.cards.pop(0)
 
 

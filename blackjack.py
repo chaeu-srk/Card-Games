@@ -28,7 +28,7 @@ class Person:
         self.bet_amount = 0
 
     def draw_card(self):
-        self.cards.append(self.deck.draw_one_card())
+        self.cards.append(self.deck.draw_card())
 
     def bet(self, amount: int) -> bool:
         if amount > self.chips:
