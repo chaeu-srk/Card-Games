@@ -2,7 +2,7 @@ import pytest
 
 from cards import Card
 
-from blackjack_v2 import Player
+from blackjack_v2 import Player, Table
 
 @pytest.mark.parametrize(
     "bj_combinations_true",
@@ -38,7 +38,12 @@ def test_player_bj_payout():
     player.payout(blackjack=True)
     assert player._chips == 750
 
-    
+def test_clear_cards():
+    table = Table()
+    table.initial_deal()
+    assert not table.get_player().get_cards() is False
+    table.clear_table_cards()
+    assert not table.get_player().get_cards() is True
     
 
 # @pytest.mark.skip

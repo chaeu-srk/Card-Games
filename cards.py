@@ -20,13 +20,13 @@ class Card:
             self.symbol = value
 
     def __str__(self) -> str:
-        return str(self.symbol)
+        return f"({self.symbol}, {self.suit})"
 
     def __int__(self) -> int:
         return self.value
 
     def __repr__(self) -> str:
-        return f"({self.symbol}, {self.suit})"
+        return str(self.symbol)
 
 
 class Deck:
