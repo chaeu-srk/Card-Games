@@ -200,11 +200,11 @@ class Table:
         elif value > 21:
             return "player"
 
-        elif 17 < value <= 21:
+        elif 17 <= value <= 21:
             return self.compare_cards()
 
         else:
-            raise AssertionError("End of function")
+            raise ValueError(f"Invalid dealer card value: {value}")
 
     def compare_cards(self) -> str | None:
         """
@@ -262,6 +262,7 @@ class View:
 
         print(f"\n{entity.get_name()} cards:")
         print("-----------")
+
         for i, card in enumerate(entity.get_cards()):
             if i == 1 and hide_second_card is True:
                 print("(********)")
@@ -288,18 +289,28 @@ class View:
         action = input("Player action (hit, stand, double, split): ")
         action_result = self.game.player_action(action)
 
+        # Card display option based on action
         if action == "stand":
-            pass
-        else:
-            self.display_cards(game.get_player())
+            self.display_cards(self.game.get_dealer())
 
-        if action_result is None:
+        elif action == "double":
             self.display_cards(self.game.get_player())
+            self.display_cards(self.game.get_dealer())
+
+        elif action == "hit" and action_result == "dealer":
+            self.display_cards(self.game.get_player())
+            self.display_cards(self.game.get_dealer())
+
+        else:
+            self.display_cards(self.game.get_player())
+        
+
+        # display option based on action result
+        if action_result is None:
+            # Recalls an ask p.action if hit and not bust
             self.ask_for_player_action()
 
-        self.display_cards(self.game.get_dealer())
-
-        if action_result == "player":
+        elif action_result == "player":
             print("player won")
             self.game.player_win()
 
@@ -311,14 +322,32 @@ class View:
             print("push")
             self.game.push()
 
-    def game_loop(self):
-        self.round_start()
-        self.ask_for_player_bet()
+    def ask_play_again(self) -> bool:
+        """
+        Returns True if player wants to play again
+        Returns False if player wants to quit
+        """
+        while True:
+            input_result = input("play again? (y/n): ")
+            if input_result == "y":
+                return True
+            elif input_result == "n":
+                return False
+            else:
+                print("invalid")
 
-        self.game.initial_deal()
-        self.display_cards(self.game.get_dealer(), True)
-        self.display_cards(self.game.get_player())
-        self.ask_for_player_action()
+    def game_loop(self):
+        while True:
+            self.round_start()
+            self.ask_for_player_bet()
+
+            self.game.initial_deal()
+            self.display_cards(self.game.get_dealer(), True)
+            self.display_cards(self.game.get_player())
+            self.ask_for_player_action()
+
+            if self.ask_play_again() is False:
+                break
 
 
 if __name__ == "__main__":
