@@ -141,7 +141,7 @@ class Table:
     Handles all the interactions between player and dealer
     """
 
-    def __init__(self, player: Player, dealer: Player, deck: BlackJackDeck) -> None:
+    def __init__(self, player: Player, dealer: Player, deck: Deck) -> None:
         self._player = player
         self._dealer = dealer
 
@@ -153,7 +153,7 @@ class Table:
     def get_dealer(self) -> Player:
         return self._dealer
 
-    def get_deck(self) -> BlackJackDeck:
+    def get_deck(self) -> Deck:
         return self._deck
 
     def draw_card(self, player: Player) -> None:
@@ -168,12 +168,20 @@ class Table:
     def player_bets(self, bet: int) -> bool:
         return self._player.bet(bet)
 
-    def initial_deal(self) -> None:
-        """Dealer and player both draws 2 cards"""
+    def initial_deal(self) -> None | Literal["blackjack"]:
+        """
+        The inital deal when a round starts
+        deals two cards to the player and dealer
+
+        if returns blackjack if player got blackjack
+        """
         self.player_draw_card()
         self.dealer_draw_card()
         self.player_draw_card()
         self.dealer_draw_card()
+
+        if self.get_player().blackjack_check():
+            return "blackjack"
 
     def player_hit(self) -> None | Literal["bust", "dealer_action"]:
         """
@@ -348,15 +356,20 @@ class Table:
         return split_results
 
     def player_action(
-        self, action: str
-    ) -> None | Literal["dealer_action", "bust", "invalid", "split"]:
+        self, action: str | Literal["hit", "stand", "double", "split"]
+    ) -> None | Literal["dealer_action", "bust", "invalid", "split", "blackjack"]:
         """
-        Should return whether to
-            call another player action
-            call a dealer action
-            player busts
+        returns the result of the player action:
+
+        if none is returned player_action is to be recalled
+        if dealer_action then dealer_action is to be called
+        if split then create_splits should be called and split_action should be used for the splits
+        if bust then dealer action should be called then player_lose
         """
-        if action == "hit":
+        if self.get_player().blackjack_check():
+            return "blackjack"
+
+        elif action == "hit":
             return self.player_hit()
 
         elif action == "stand":
@@ -378,20 +391,33 @@ class Table:
         else:
             return "invalid"
 
-    def clear_table_cards(self) -> None:
-        self._dealer.clear_cards()
-        self._player.clear_cards()
-
-    def reset_table(self):
+    def reset_table(self) -> None:
+        """
+        clears player's cards
+        clears player's bet
+        clears dealer's bet
+        """
         self._dealer.clear_cards()
         self._player.clear_cards()
         self._player.clear_bet()
 
-    def player_win(self):
-        self._player.payout()
+    def player_blackjack_win(self) -> None:
+        self._player.payout(True)
+        self.reset_table()
 
-    def player_lose(self):
+    def player_win(self) -> None:
+        """
+        player wins their bet and table is reset
+        """
+        self._player.payout()
+        self.reset_table()
+
+    def player_lose(self) -> None:
+        """
+        player loses their bet and table is reset
+        """
         self._player.lose_bet()
+        self.reset_table()
 
     def split_lose(self, split: Player):
         self._player.reduce_chips(split.get_chips())
@@ -400,8 +426,7 @@ class Table:
         self._player.add_chips(split.get_chips())
 
     def push(self):
-        self._player.clear_bet()
-        self.clear_table_cards()
+        self.reset_table()
 
     def check_splitable(self) -> bool:
         """
@@ -413,11 +438,6 @@ class Table:
         if int(card_1) == int(card_2):
             return True
         return False
-
-
-class SplitTable(Table):
-    def dealer_action(self):
-        pass
 
 
 class View:
@@ -458,6 +478,19 @@ class View:
             break
 
     def ask_for_player_action(self, game: Table):
+        if game.get_player().blackjack_check():
+            dealer_result = self.game.dealer_action()
+            self.display_cards(game.get_dealer())
+
+            if dealer_result == "compare":
+                print("PUSH")
+                self.game.push()
+                return
+            else:
+                print("BLACKJACK")
+                self.game.player_blackjack_win()
+                return
+
         while True:
             action = input("Player action (hit, stand, double, split): ")
             action_result = game.player_action(action)
@@ -491,7 +524,6 @@ class View:
 
         if game_result == "player":
             self.game.player_win()
-            self.game.reset_table()
 
             print("WON")
         elif game_result == "dealer":
@@ -535,7 +567,6 @@ class View:
             else:
                 return action_result
 
-
     def ask_play_again(self) -> bool:
         """
         Returns True if player wants to play again
@@ -549,6 +580,18 @@ class View:
                 return False
             else:
                 print("invalid")
+
+    def initial_deal(self):
+        if self.game.initial_deal() == "blackjack":
+            dealer_result = self.game.dealer_action()
+            self.display_cards(self.game.get_dealer())
+
+            if dealer_result == "compare":
+                print("PUSH")
+                self.game.push()
+            else:
+                print("BLACKJACK")
+                self.game.player_blackjack_win()
 
     def game_loop(self):
         while True:
@@ -565,13 +608,45 @@ class View:
                 break
 
 
-if __name__ == "__main__":
+def create_game() -> Table:
     player = Player([], "Player")
     dealer = Player([], "Dealer")
     deck = BlackJackDeck()
 
     game = Table(player, dealer, deck)
+    return game
+
+
+def custom_game():
+    player = Player([], "Player")
+    dealer = Player([], "Dealer")
+    deck = Deck()
+    deck.add_cards(
+        [
+            Card(1, ""),
+            Card(3, ""),
+            Card(10, ""),
+            Card(13, ""),
+            Card(13, ""),
+            Card(13, ""),
+            Card(13, ""),
+        ]
+    )
+
+    game = Table(player, dealer, deck)
+    return game
+
+
+if __name__ == "__main__":
+    game = custom_game()
     app = View(game)
 
     print("GAME START >>>\n")
     app.game_loop()
+
+# BUGS
+# dealer gets 21, player bust you still get payout
+# If you bust, then dealer busts, you win
+# does not instantly payout when you get blackjack
+# cannot split on two face cards. Card.value is > 10 so checks dont pass
+# doubles dont work properly

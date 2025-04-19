@@ -46,6 +46,9 @@ class Deck:
 
     def draw_card(self) -> Card:
         return self.cards.pop(0)
+    
+    def add_cards(self, cards: list[Card]):
+        self.cards.extend(cards)
 
 
 if __name__ == "__main__":
