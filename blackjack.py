@@ -23,7 +23,7 @@ class BlackJackDeck(Deck):
 
 
 class Player:
-    def __init__(self, cards: list[Card], name: str = "", chips: float = 500) -> None:
+    def __init__(self, cards: list[Card], name: str = "", chips: int = 500) -> None:
         """
         Constructor method for Entity,
         Args:
@@ -61,7 +61,7 @@ class Player:
 
         return total_value
 
-    def get_chips(self) -> float:
+    def get_chips(self) -> int:
         return self._chips
 
     def double_chips(self):
@@ -107,10 +107,10 @@ class Player:
         self._bet += bet
         return True
 
-    def reduce_chips(self, num: float):
+    def reduce_chips(self, num: int):
         self._chips -= num
 
-    def add_chips(self, num: float):
+    def add_chips(self, num: int):
         self._chips += num
 
     def clear_bet(self) -> None:
@@ -130,7 +130,8 @@ class Player:
         if blackjack is true, will change the payout
         """
         if blackjack is True:
-            self._chips += self._bet * 1.5
+            chips = self._bet * 1.5
+            self._chips += int(chips)
 
         self._chips += self._bet
         self.clear_bet()
@@ -624,7 +625,7 @@ def custom_game():
     deck.add_cards(
         [
             Card(1, ""),
-            Card(3, ""),
+            Card(1, ""),
             Card(10, ""),
             Card(13, ""),
             Card(13, ""),
@@ -638,7 +639,7 @@ def custom_game():
 
 
 if __name__ == "__main__":
-    game = custom_game()
+    game = create_game()
     app = View(game)
 
     print("GAME START >>>\n")
