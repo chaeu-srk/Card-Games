@@ -1,3 +1,4 @@
+from typing import Literal
 from cards import Deck, Card
 
 
@@ -21,12 +22,8 @@ class BlackJackDeck(Deck):
         self.shuffle_deck()
 
 
-class Entity:
-    """
-    Abstract class for default behaviours
-    """
-
-    def __init__(self, cards: list[Card] = [], name: str = "") -> None:
+class Player:
+    def __init__(self, cards: list[Card], name: str = "", chips: float = 500) -> None:
         """
         Constructor method for Entity,
         Args:
@@ -36,18 +33,14 @@ class Entity:
         self._cards = cards
         self._name = name
 
+        self._chips = chips
+        self._bet = 0
+
     def get_cards(self) -> list[Card]:
         return self._cards
 
     def get_name(self) -> str:
         return self._name
-
-    def add_card(self, card: Card) -> None:
-        """Gives the entity the passed card."""
-        self._cards.append(card)
-
-    def clear_cards(self) -> None:
-        self._cards = []
 
     def get_card_values(self) -> int:
         """Returns the added up values of the entity's cards"""
@@ -68,29 +61,32 @@ class Entity:
 
         return total_value
 
+    def get_chips(self) -> float:
+        return self._chips
+
+    def double_chips(self):
+        self._chips *= 2
+
+    def get_bet(self) -> int:
+        return self._bet
+
+    def add_card(self, card: Card) -> None:
+        """Gives the entity the passed card."""
+        self._cards.append(card)
+
+    def clear_cards(self) -> None:
+        self._cards = []
+
     def blackjack_check(self) -> bool:
         if len(self._cards) == 2 and self.get_card_values() == 21:
             return True
         return False
 
-
-class Player(Entity):
-    """
-    Player entity
-    """
-
-    def __init__(
-        self, cards: list[Card] = [], name: str = "", chips: int = 500
-    ) -> None:
-        super().__init__(cards, name)
-        self._chips = chips
-        self._bet = 0
-
-    def get_chips(self) -> int | float:
-        return self._chips
-
-    def get_bet(self) -> int | float:
-        return self._bet
+    def check_can_double_split(self) -> bool:
+        if (self._chips - self._bet) < self._bet:
+            return False
+        else:
+            return True
 
     def bet(self, bet: int) -> bool:
         """
@@ -103,6 +99,19 @@ class Player(Entity):
 
         self._bet = bet
         return True
+
+    def add_bet(self, bet: int) -> bool:
+        if bet > self._chips:
+            return False
+
+        self._bet += bet
+        return True
+
+    def reduce_chips(self, num: float):
+        self._chips -= num
+
+    def add_chips(self, num: float):
+        self._chips += num
 
     def clear_bet(self) -> None:
         """sets bet to 0"""
@@ -126,26 +135,29 @@ class Player(Entity):
         self._chips += self._bet
         self.clear_bet()
 
-    def split(self):
-        pass
-
 
 class Table:
     """
     Handles all the interactions between player and dealer
     """
 
-    def __init__(self) -> None:
-        self._player = Player(name="Player")
-        self._dealer = Entity(name="Dealer")
+    def __init__(self, player: Player, dealer: Player, deck: BlackJackDeck) -> None:
+        self._player = player
+        self._dealer = dealer
 
-        self._deck = BlackJackDeck()
+        self._deck = deck
 
     def get_player(self) -> Player:
         return self._player
 
-    def get_dealer(self) -> Entity:
+    def get_dealer(self) -> Player:
         return self._dealer
+
+    def get_deck(self) -> BlackJackDeck:
+        return self._deck
+
+    def draw_card(self, player: Player) -> None:
+        player.add_card(self._deck.draw_card())
 
     def player_draw_card(self) -> None:
         self._player.add_card(self._deck.draw_card())
@@ -163,33 +175,101 @@ class Table:
         self.player_draw_card()
         self.dealer_draw_card()
 
-    def player_hit(self) -> str | None:
+    def player_hit(self) -> None | Literal["bust", "dealer_action"]:
+        """
+        Returns:
+            "bust"
+            "dealer_action"
+            None
+        """
         self.player_draw_card()
 
         if self._player.get_card_values() > 21:
-            return "dealer"
+            return "bust"
 
         elif self._player.get_card_values() == 21:
-            return self.dealer_action()
+            return "dealer_action"
 
-        return
+        return None
 
-    def player_double(self) -> str | None:
+    def split_hit(self, split: Player) -> None | Literal["bust", "dealer_action"]:
+        """
+        Returns:
+            "bust"
+            "dealer_action"
+            None
+        """
+        self.draw_card(split)
+
+        if split.get_card_values() > 21:
+            return "bust"
+
+        elif split.get_card_values() == 21:
+            return "dealer_action"
+
+        return None
+
+    def player_double(self) -> None | Literal["dealer_action", "bust"]:
+        """
+        Returns:
+            "bust"
+            "dealer_action"
+        """
         self._player.double_bet()
         hit_result = self.player_hit()
 
         if hit_result is None:
-            return self.dealer_action()
+            return "dealer_action"
 
         return hit_result
 
-    def dealer_action(self) -> str | None:
+    def split_double(self, split: Player):
+        split.double_chips()
+        hit_result = self.split_hit(split)
+
+        if hit_result is None:
+            return "dealer_action"
+
+        return hit_result
+
+    def create_split(self):
+        return [
+            Player(
+                [self.get_player().get_cards()[0]], "split 1", self._player.get_bet()
+            ),
+            Player(
+                [self.get_player().get_cards()[1]], "split 2", self._player.get_bet()
+            ),
+        ]
+
+    def split_action(
+        self, split: Player, action: str
+    ) -> None | Literal["bust", "dealer_action", "invalid"]:
+        if action == "hit":
+            return self.split_hit(split)
+
+        elif action == "stand":
+            return "dealer_action"
+
+        elif action == "double":
+            if not self.get_player().check_can_double_split():
+                return "invalid"
+            return self.split_double(split)
+
+        # elif action == "split":
+        #     if not self.get_player().check_can_double_split():
+        #         return "invalid"
+        #     return "split"
+        else:
+            return "invalid"
+
+    def dealer_action(self) -> None | Literal["player", "dealer", "tied", "compare"]:
         """
         Return:
+            "compare"
             "tied"
             "player"
             "dealer"
-            ""
         """
         value = self._dealer.get_card_values()
 
@@ -201,10 +281,22 @@ class Table:
             return "player"
 
         elif 17 <= value <= 21:
-            return self.compare_cards()
+            return "compare"
 
         else:
             raise ValueError(f"Invalid dealer card value: {value}")
+
+    def split_dealer_action(self) -> None | Literal["compare", "player"]:
+        value = self._dealer.get_card_values()
+        if value < 17:
+            self.dealer_draw_card()
+            return self.split_dealer_action()
+
+        elif 17 <= value <= 21:
+            return "compare"
+
+        elif value > 21:
+            return "player"
 
     def compare_cards(self) -> str | None:
         """
@@ -217,47 +309,127 @@ class Table:
 
         if player_val == dealer_val:
             return "tied"
+
         elif player_val > dealer_val:
+            self._player.payout()
             return "player"
+
         elif dealer_val > player_val:
+            self._player.lose_bet()
             return "dealer"
 
-    def player_action(self, action: str):
+    def split_compare_cards(self, split: Player) -> Literal["tied", "player", "dealer"]:
+        """
+        Returns whoever has the higher card values or tied
+        Return:
+            "tied", "player", "dealer"
+        """
+        split_val = split.get_card_values()
+        dealer_val = self._dealer.get_card_values()
+
+        if split_val == dealer_val:
+            return "tied"
+        elif split_val > dealer_val:
+            return "player"
+        elif dealer_val > split_val:
+            return "dealer"
+        else:
+            raise ValueError
+
+    def collect_split_results(self, splits: list[Player]):
+        split_results = []
+        for split in splits:
+            if split.get_card_values() > 21:
+                split_results.append("bust")
+                break
+
+            split_results.append(self.split_compare_cards(split))
+
+        return split_results
+
+    def player_action(
+        self, action: str
+    ) -> None | Literal["dealer_action", "bust", "invalid", "split"]:
+        """
+        Should return whether to
+            call another player action
+            call a dealer action
+            player busts
+        """
         if action == "hit":
             return self.player_hit()
+
         elif action == "stand":
-            return self.dealer_action()
+            return "dealer_action"
+
         elif action == "double":
+            if not self.get_player().check_can_double_split():
+                return "invalid"
             return self.player_double()
+
         elif action == "split":
-            pass
+            if (
+                not self.get_player().check_can_double_split()
+                or not self.check_splitable()
+            ):
+                return "invalid"
+            return "split"
+
+        else:
+            return "invalid"
 
     def clear_table_cards(self) -> None:
         self._dealer.clear_cards()
         self._player.clear_cards()
 
+    def reset_table(self):
+        self._dealer.clear_cards()
+        self._player.clear_cards()
+        self._player.clear_bet()
+
     def player_win(self):
         self._player.payout()
-        self.clear_table_cards()
 
     def player_lose(self):
         self._player.lose_bet()
-        self.clear_table_cards()
+
+    def split_lose(self, split: Player):
+        self._player.reduce_chips(split.get_chips())
+
+    def split_win(self, split: Player):
+        self._player.add_chips(split.get_chips())
 
     def push(self):
         self._player.clear_bet()
         self.clear_table_cards()
 
+    def check_splitable(self) -> bool:
+        """
+        True if can split
+        """
+        card_1 = self._player.get_cards()[0]
+        card_2 = self._player.get_cards()[1]
+
+        if int(card_1) == int(card_2):
+            return True
+        return False
+
+
+class SplitTable(Table):
+    def dealer_action(self):
+        pass
+
 
 class View:
     def __init__(self, game: Table) -> None:
         self.game = game
+        self.splits = []
 
     def round_start(self):
         print("ROUND START")
         print("----------\n")
 
-    def display_cards(self, entity: Entity, hide_second_card: bool = False):
+    def display_cards(self, entity: Player, hide_second_card: bool = False):
         value = entity.get_card_values()
 
         print(f"\n{entity.get_name()} cards:")
@@ -275,52 +447,94 @@ class View:
 
     def ask_for_player_bet(self):
         print(f"Chips: {self.game.get_player().get_chips()}")
+
         while True:
             bet = int(input("Bet amount: "))
-            bet_validity = self.game.player_bets(bet)
 
-            if bet_validity is False:
+            if self.game.get_player().bet(bet) is False:
                 print("Not enough chips!")
                 continue
 
             break
 
-    def ask_for_player_action(self):
-        action = input("Player action (hit, stand, double, split): ")
-        action_result = self.game.player_action(action)
+    def ask_for_player_action(self, game: Table):
+        while True:
+            action = input("Player action (hit, stand, double, split): ")
+            action_result = game.player_action(action)
 
-        # Card display option based on action
-        if action == "stand":
-            self.display_cards(self.game.get_dealer())
+            if action_result == "invalid":
+                continue
+            elif action_result is None:
+                self.display_cards(game.get_player())
+                continue
+            else:
+                break
 
-        elif action == "double":
-            self.display_cards(self.game.get_player())
-            self.display_cards(self.game.get_dealer())
+        if action_result == "dealer_action":
+            dealer_result = self.game.dealer_action()
+            self.display_cards(game.get_dealer())
 
-        elif action == "hit" and action_result == "dealer":
-            self.display_cards(self.game.get_player())
-            self.display_cards(self.game.get_dealer())
-
+        elif action_result == "bust":
+            self.display_cards(game.get_player())
+            print("BUST")
+            dealer_result = self.game.dealer_action()
+            self.display_cards(game.get_dealer())
+        elif action_result == "split":
+            return self.split_loop()
         else:
-            self.display_cards(self.game.get_player())
-        
+            raise ValueError
 
-        # display option based on action result
-        if action_result is None:
-            # Recalls an ask p.action if hit and not bust
-            self.ask_for_player_action()
+        if dealer_result == "compare":
+            game_result = self.game.compare_cards()
+        else:
+            game_result = dealer_result
 
-        elif action_result == "player":
-            print("player won")
+        if game_result == "player":
             self.game.player_win()
+            self.game.reset_table()
 
-        elif action_result == "dealer":
-            print("dealer won")
+            print("WON")
+        elif game_result == "dealer":
             self.game.player_lose()
+            self.game.reset_table()
 
-        elif action_result == "tied":
-            print("push")
-            self.game.push()
+            print("LOST")
+
+        elif game_result == "tied":
+            self.game.reset_table()
+
+            print("PUSH")
+
+    def split_loop(self):
+        splits = self.game.create_split()
+
+        for split in splits:
+            self.split_ask_player_action(split)
+
+        self.game.split_dealer_action()
+        self.display_cards(self.game.get_dealer())
+        split_results = self.game.collect_split_results(splits)
+
+        for i, result in enumerate(split_results):
+            print(f"Split {i}: {result}")
+
+    def split_ask_player_action(self, split: Player):
+        self.display_cards(split)
+        while True:
+            action = input("Player action (hit, stand, double, split): ")
+            action_result = self.game.split_action(split, action)
+
+            if action_result == "invalid":
+                continue
+
+            # action result is to recall
+            elif action_result is None:
+                self.display_cards(split)
+                continue
+
+            else:
+                return action_result
+
 
     def ask_play_again(self) -> bool:
         """
@@ -344,14 +558,20 @@ class View:
             self.game.initial_deal()
             self.display_cards(self.game.get_dealer(), True)
             self.display_cards(self.game.get_player())
-            self.ask_for_player_action()
+
+            self.ask_for_player_action(self.game)
 
             if self.ask_play_again() is False:
                 break
 
 
 if __name__ == "__main__":
-    game = Table()
+    player = Player([], "Player")
+    dealer = Player([], "Dealer")
+    deck = BlackJackDeck()
+
+    game = Table(player, dealer, deck)
     app = View(game)
+
     print("GAME START >>>\n")
     app.game_loop()
