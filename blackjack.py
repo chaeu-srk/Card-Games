@@ -345,14 +345,13 @@ class Table:
         else:
             raise ValueError
 
-    def collect_split_results(self, splits: list[Player]):
+    def collect_split_results(self, splits: list[Player]) -> list[Literal["bust", "player", "dealer", "tied"]]:
         split_results = []
         for split in splits:
             if split.get_card_values() > 21:
                 split_results.append("bust")
-                break
-
-            split_results.append(self.split_compare_cards(split))
+            else:
+                split_results.append(self.split_compare_cards(split))
 
         return split_results
 
@@ -433,13 +432,16 @@ class Table:
         """
         True if can split
         """
-        card_1 = self._player.get_cards()[0]
-        card_2 = self._player.get_cards()[1]
+        player = self.get_player()
+        card_1 = player.get_cards()[0]
+        card_2 = player.get_cards()[1]
 
-        if int(card_1) == int(card_2):
+        if card_1.value == card_2.value:
             return True
-        return False
+        elif card_1.value >= 10 and card_2.value >= 10:
+            return True
 
+        return False
 
 class View:
     def __init__(self, game: Table) -> None:
@@ -550,10 +552,19 @@ class View:
 
         self.game.split_dealer_action()
         self.display_cards(self.game.get_dealer())
+
         split_results = self.game.collect_split_results(splits)
 
         for i, result in enumerate(split_results):
             print(f"Split {i}: {result}")
+            if result == "dealer":
+                self.game.split_lose(splits[i])
+            elif result == "player":
+                self.game.split_win(splits[i])
+            elif result == "tied":
+                pass
+            elif result == "bust":
+                self.game.split_lose(splits[i])
 
     def split_ask_player_action(self, split: Player):
         self.display_cards(split)
@@ -628,11 +639,11 @@ def custom_game():
     deck = Deck()
     deck.add_cards(
         [
-            Card(1, ""),
-            Card(1, ""),
             Card(10, ""),
-            Card(13, ""),
-            Card(13, ""),
+            Card(2, ""),
+            Card(10, ""),
+            Card(2, ""),
+            Card(10, ""),
             Card(13, ""),
             Card(13, ""),
         ]
@@ -651,4 +662,3 @@ if __name__ == "__main__":
 
 # BUGS
 # getting 21 after hitting does not display cards
-# cannot split on two face cards. Card.value is > 10 so checks dont pass

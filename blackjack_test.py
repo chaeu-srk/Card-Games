@@ -53,10 +53,9 @@ def test_player_bj_payout():
     game.player_bets(100)
     game.initial_deal()
     game.dealer_action()
+    game.player_blackjack_win()
 
     assert game.get_player().get_chips() == 750
-    
-
 
 def test_reset_table(game_random_deck: Table):
     game = game_random_deck
@@ -73,6 +72,27 @@ def test_reset_table(game_random_deck: Table):
 
 def table_reset_with_splits():
     pass
-    
-def test_split_payouts():
-    pass
+
+@pytest.fixture
+def deck_for_splits():
+    deck = EmptyBjDeck()
+    deck.add_cards(
+        [
+            Card(10, ""),
+            Card(2, ""),
+            Card(12, ""),
+            Card(2, ""),
+            Card(3, ""),
+            Card(3, ""),
+            Card(3, ""),
+            Card(3, ""),
+            Card(3, ""),
+        ]
+    )
+    game = Table(Player([]), Player([]), deck)
+    return game
+
+def test_splitable_checks(deck_for_splits: Table):
+    game = deck_for_splits
+    game.initial_deal()
+    assert game.check_splitable() is True
