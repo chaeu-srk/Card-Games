@@ -483,7 +483,7 @@ class View:
             dealer_result = self.game.dealer_action()
             self.display_cards(game.get_dealer())
 
-            if dealer_result == "compare":
+            if game.get_dealer().blackjack_check():
                 print("PUSH")
                 self.game.push()
                 return
@@ -501,6 +501,9 @@ class View:
             elif action_result is None:
                 self.display_cards(game.get_player())
                 continue
+            elif action == "double":
+                self.display_cards(game.get_player())
+                break
             else:
                 break
 
@@ -513,6 +516,8 @@ class View:
             print("BUST")
             dealer_result = self.game.dealer_action()
             self.display_cards(game.get_dealer())
+            self.game.player_lose()
+            return
         elif action_result == "split":
             return self.split_loop()
         else:
@@ -529,7 +534,6 @@ class View:
             print("WON")
         elif game_result == "dealer":
             self.game.player_lose()
-            self.game.reset_table()
 
             print("LOST")
 
@@ -646,8 +650,5 @@ if __name__ == "__main__":
     app.game_loop()
 
 # BUGS
-# dealer gets 21, player bust you still get payout
-# If you bust, then dealer busts, you win
-# does not instantly payout when you get blackjack
+# getting 21 after hitting does not display cards
 # cannot split on two face cards. Card.value is > 10 so checks dont pass
-# doubles dont work properly

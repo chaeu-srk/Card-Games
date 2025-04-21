@@ -47,9 +47,15 @@ def test_player_payout_methods():
 
 def test_player_bj_payout():
     deck = EmptyBjDeck()
-    deck.add_cards([Card(1, ""), Card(3, ""), Card(10, ""), Card(13, "")])
+    deck.add_cards([Card(1, ""), Card(3, ""), Card(10, ""), Card(13, ""), Card(10, ""), Card(10, "")])
     game = Table(Player([]), Player([]), deck)
-    assert game.initial_deal() == "blackjack"
+
+    game.player_bets(100)
+    game.initial_deal()
+    game.dealer_action()
+
+    assert game.get_player().get_chips() == 750
+    
 
 
 def test_reset_table(game_random_deck: Table):
